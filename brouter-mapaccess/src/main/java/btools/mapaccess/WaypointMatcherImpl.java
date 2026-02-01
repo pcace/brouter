@@ -93,9 +93,9 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
       if (!useAsStartWay && i == 0) continue;
       MatchedWaypoint mwp = waypoints.get(i);
 
-      if (mwp.direct &&
+      if (mwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT &&
         (i == 0 ||
-          waypoints.get(i - 1).direct)
+          waypoints.get(i - 1).wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT)
       ) {
         if (mwp.crosspoint == null) {
           mwp.crosspoint = new OsmNode();
@@ -116,7 +116,7 @@ public final class WaypointMatcherImpl implements WaypointMatcher {
       double r22 = x2 * x2 + y2 * y2;
       double radius = Math.abs(r12 < r22 ? y1 * dx - x1 * dy : y2 * dx - x2 * dy) / d;
 
-      if (radius < mwp.radius) {
+      if (radius <= mwp.radius) {
         double s1 = x1 * dx + y1 * dy;
         double s2 = x2 * dx + y2 * dy;
 

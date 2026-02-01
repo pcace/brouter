@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import btools.mapaccess.MatchedWaypoint;
+
 public class RoutingParamCollector {
 
   final static boolean DEBUG = false;
@@ -33,9 +35,12 @@ public class RoutingParamCollector {
       wplist.add(readPosition(lonLat[0], lonLat[1], "via" + i));
       if (lonLat.length > 2) {
         if (lonLat[2].equals("d")) {
-          wplist.get(wplist.size() - 1).direct = true;
+          wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
+        } else if (lonLat[2].equals("m")) {
+          wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_MEETING;
         } else {
           wplist.get(wplist.size() - 1).name = lonLat[2];
+          wplist.get(wplist.size() - 1).wpttype = MatchedWaypoint.WAYPOINT_TYPE_MEETING;
         }
       }
     }
@@ -190,7 +195,7 @@ public class RoutingParamCollector {
             String[] sa = value.split(",");
             for (int i = 0; i < sa.length; i++) {
               int v = Integer.parseInt(sa[i]);
-              if (wplist.size() > v) wplist.get(v).direct = true;
+              if (wplist.size() > v) wplist.get(v).wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
             }
           } catch (Exception ex) {
             System.err.println("error " + ex.getStackTrace()[0].getLineNumber() + " " + ex.getStackTrace()[0] + "\n" + ex);
@@ -202,6 +207,17 @@ public class RoutingParamCollector {
           rctx.forceUseStartDirection = true;
         } else if (key.equals("direction")) {
           rctx.startDirection = Integer.valueOf(value);
+        } else if (key.equals("roundTripDistance")) {
+          rctx.roundTripDistance = Integer.valueOf(value);
+        } else if (key.equals("roundTripDirectionAdd")) {
+          rctx.roundTripDirectionAdd = Integer.valueOf(value);
+        } else if (key.equals("roundTripPoints")) {
+          rctx.roundTripPoints = Integer.valueOf(value);
+          if (rctx.roundTripPoints == null || rctx.roundTripPoints < 3 || rctx.roundTripPoints > 20) {
+            rctx.roundTripPoints = 5;
+          }
+        } else if (key.equals("allowSamewayback")) {
+          rctx.allowSamewayback = Integer.parseInt(value)==1;
         } else if (key.equals("alternativeidx")) {
           rctx.setAlternativeIdx(Integer.parseInt(value));
         } else if (key.equals("turnInstructionMode")) {
@@ -216,6 +232,8 @@ public class RoutingParamCollector {
           }
         } else if (key.equals("exportWaypoints")) {
           rctx.exportWaypoints = (Integer.parseInt(value) == 1);
+        } else if (key.equals("exportCorrectedWaypoints")) {
+          rctx.exportCorrectedWaypoints = (Integer.parseInt(value) == 1);
         } else if (key.equals("format")) {
           rctx.outputFormat = ((String) value).toLowerCase();
         } else if (key.equals("trackFormat")) {

@@ -23,8 +23,8 @@ import btools.util.CompactLongMap;
 import btools.util.FrozenLongMap;
 
 public final class OsmTrack {
-  final public static String version = "1.7.7";
-  final public static String versionDate = "23072024";
+  final public static String version = "1.7.8";
+  final public static String versionDate = "12072025";
 
   // csv-header-line
   private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
@@ -62,6 +62,7 @@ public final class OsmTrack {
 
   protected List<MatchedWaypoint> matchedWaypoints;
   public boolean exportWaypoints = false;
+  public boolean exportCorrectedWaypoints = false;
 
   public void addNode(OsmPathElement node) {
     nodes.add(0, node);
@@ -338,6 +339,7 @@ public final class OsmTrack {
     }
     float t0 = ourSize > 0 ? nodes.get(ourSize - 1).getTime() : 0;
     float e0 = ourSize > 0 ? nodes.get(ourSize - 1).getEnergy() : 0;
+    int c0 = ourSize > 0 ? nodes.get(ourSize - 1).cost : 0;
     for (i = 0; i < t.nodes.size(); i++) {
       OsmPathElement e = t.nodes.get(i);
       if (i == 0 && ourSize > 0 && nodes.get(ourSize - 1).getSElev() == Short.MIN_VALUE)
@@ -345,6 +347,7 @@ public final class OsmTrack {
       if (i > 0 || ourSize == 0) {
         e.setTime(e.getTime() + t0);
         e.setEnergy(e.getEnergy() + e0);
+        e.cost = e.cost + c0;
         if (e.message != null){
           if (!(e.message.lon == e.getILon() && e.message.lat == e.getILat())) {
             e.message.lon = e.getILon();
@@ -493,7 +496,7 @@ public final class OsmTrack {
           rc.turnInstructionMode == 2 ||
           rc.turnInstructionMode == 9) {
           MatchedWaypoint mwpt = getMatchedWaypoint(nodeNr);
-          if (mwpt != null && mwpt.direct) {
+          if (mwpt != null && mwpt.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
             input.cmd = VoiceHint.BL;
             input.angle = (float) (nodeNr == 0 ? node.origin.message.turnangle : node.message.turnangle);
             input.distanceToNext = node.calcDistance(node.origin);
@@ -547,10 +550,7 @@ public final class OsmTrack {
   }
 
   public float getVoiceHintTime(int i) {
-    if (voiceHints.list.isEmpty()) {
-      return 0f;
-    }
-    if (i < voiceHints.list.size()) {
+    if (!voiceHints.list.isEmpty() && i < voiceHints.list.size()) {
       return voiceHints.list.get(i).getTime();
     }
     if (nodes.isEmpty()) {

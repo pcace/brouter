@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Random;
 
 public class StackSampler extends Thread {
-  private DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", new Locale("en", "US"));
+  private DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", new Locale.Builder().setLanguage("en").setRegion("US").build());
   private BufferedWriter bw;
   private Random rand = new Random();
 
@@ -47,6 +47,7 @@ public class StackSampler extends Thread {
     }
   }
 
+  @SuppressWarnings({"deprecation", "RedundantSuppression"}) // Android
   public void dumpThreads() {
     try {
       int wait1 = rand.nextInt(interval);

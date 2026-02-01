@@ -36,6 +36,7 @@ public final class RoutingContext {
   public Map<String, String> keyValues;
 
   public String rawTrackPath;
+  public String rawAreaPath;
 
   public String getProfileName() {
     String name = localFunction == null ? "unknown" : localFunction;
@@ -76,7 +77,11 @@ public final class RoutingContext {
   public double waypointCatchingRange;
   public boolean correctMisplacedViaPoints;
   public double correctMisplacedViaPointsDistance;
+  public boolean continueStraight;
   public boolean useDynamicDistance;
+  public boolean buildBeelineOnRange;
+
+  public AreaInfo ai;
 
   private void setModel(String className) {
     if (className == null) {
@@ -120,7 +125,9 @@ public final class RoutingContext {
     considerTurnRestrictions = 0.f != expctxGlobal.getVariableValue("considerTurnRestrictions", footMode ? 0.f : 1.f);
 
     correctMisplacedViaPoints = 0.f != expctxGlobal.getVariableValue("correctMisplacedViaPoints", 1.f);
-    correctMisplacedViaPointsDistance = expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 40.f);
+    correctMisplacedViaPointsDistance = expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 0.f); // 0 == don't use distance
+
+    continueStraight = 0.f != expctxGlobal.getVariableValue("continueStraight", 0.f);
 
     // process tags not used in the profile (to have them in the data-tab)
     processUnusedTags = 0.f != expctxGlobal.getVariableValue("processUnusedTags", 0.f);
@@ -169,11 +176,17 @@ public final class RoutingContext {
     // Constant power of the biker (in W)
     bikerPower = expctxGlobal.getVariableValue("bikerPower", 100.f);
 
-    useDynamicDistance = expctxGlobal.getVariableValue("use_dynamic_range", 0f) == 1f;
+    useDynamicDistance = expctxGlobal.getVariableValue("use_dynamic_range", 1f) == 1f;
+    buildBeelineOnRange = expctxGlobal.getVariableValue("add_beeline", 0f) == 1f;
 
     boolean test = expctxGlobal.getVariableValue("check_start_way", 1f) == 1f;
-    if (!test) expctxGlobal.freeNoWays();
+    if (!test) freeNoWays();
 
+  }
+
+  public void freeNoWays() {
+    BExpressionContext expctxGlobal = expctxWay;
+    if (expctxGlobal != null) expctxGlobal.freeNoWays();
   }
 
   public List<OsmNodeNamed> poipoints;
@@ -186,6 +199,10 @@ public final class RoutingContext {
   public Integer startDirection;
   public boolean startDirectionValid;
   public boolean forceUseStartDirection;
+  public Integer roundTripDistance;
+  public Integer roundTripDirectionAdd;
+  public Integer roundTripPoints;
+  public boolean allowSamewayback;
 
   public CheapAngleMeter anglemeter = new CheapAngleMeter();
 
@@ -207,6 +224,7 @@ public final class RoutingContext {
 
   public String outputFormat = "gpx";
   public boolean exportWaypoints = false;
+  public boolean exportCorrectedWaypoints = false;
 
   public OsmPrePath firstPrePath;
 
@@ -299,8 +317,8 @@ public final class RoutingContext {
       if (isInsideNogo) {
         boolean useAnyway = false;
         if (prevMwp == null) useAnyway = true;
-        else if (mwp.direct) useAnyway = true;
-        else if (prevMwp.direct) useAnyway = true;
+        else if (mwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) useAnyway = true;
+        else if (prevMwp.wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) useAnyway = true;
         else if (prevMwpIsInside) useAnyway = true;
         else if (i == theSize-1) {
           throw new IllegalArgumentException("last wpt in restricted area ");

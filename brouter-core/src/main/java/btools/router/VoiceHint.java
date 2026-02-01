@@ -580,7 +580,11 @@ public class VoiceHint {
       } else if (lowerBadWayAngle >= -100.f && higherBadWayAngle < 45.f) {
         cmd = KL;
       } else {
-        cmd = C;
+        if (lowerBadWayAngle > -35.f && higherBadWayAngle > 55.f) {
+          cmd = KR;
+        } else {
+          cmd = C;
+        }
       }
     } else if (cmdAngle < 5.f) {
       if (lowerBadWayAngle > -30.f) {
@@ -597,7 +601,11 @@ public class VoiceHint {
       } else if (lowerBadWayAngle > -45.f && higherBadWayAngle <= 100.f) {
         cmd = KR;
       } else {
-        cmd = C;
+        if (lowerBadWayAngle < -55.f && higherBadWayAngle < 35.f) {
+          cmd = KL;
+        } else {
+          cmd = C;
+        }
       }
     } else if (cmdAngle < 45.f) {
       cmd = TSLR;
@@ -646,4 +654,15 @@ public class VoiceHint {
     sb.append("(").append((int) (msg.turnangle + 0.5)).append(")").append((int) (msg.priorityclassifier));
   }
 
+  public boolean hasGiveWay() {
+    if (oldWay != null && oldWay.nodeKeyValues != null) {
+      if (oldWay.wayKeyValues.contains("reversedirection=yes")) {
+        return (oldWay.nodeKeyValues.contains("highway=give_way") || oldWay.nodeKeyValues.contains("highway=stop")) && oldWay.nodeKeyValues.contains("direction=backward");
+      } else {
+        return (oldWay.nodeKeyValues.contains("highway=give_way") || oldWay.nodeKeyValues.contains("highway=stop")) && !oldWay.nodeKeyValues.contains("direction=backward");
+      }
+    }
+    return false;
+
+  }
 }

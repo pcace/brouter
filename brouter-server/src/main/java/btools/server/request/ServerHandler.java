@@ -83,6 +83,10 @@ public class ServerHandler extends RequestHandler {
     if (exportWaypointsStr != null && Integer.parseInt(exportWaypointsStr) != 0) {
       track.exportWaypoints = true;
     }
+    exportWaypointsStr = params.get("exportCorrectedWaypoints");
+    if (exportWaypointsStr != null && Integer.parseInt(exportWaypointsStr) != 0) {
+      track.exportCorrectedWaypoints = true;
+    }
 
     if (format == null || "gpx".equals(format)) {
       result = new FormatGpx(rc).format(track);

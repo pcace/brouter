@@ -18,7 +18,10 @@ import btools.expressions.BExpressionContextWay;
 
 public final class NodesCache {
 
+  final static int RETRY_RANGE = 250;
+
   private int MAX_DYNAMIC_CATCHES = 20; // used with RoutingEngiine MAX_DYNAMIC_RANGE = 60000m
+
 
   private File segmentDir;
   private File secondarySegmentsDir = null;
@@ -292,7 +295,7 @@ public final class NodesCache {
       int cellsize = 12500;
       preloadPosition(mwp.waypoint, cellsize, 1, false);
       // get a second chance
-      if (mwp.crosspoint == null || mwp.radius > Math.abs(maxDistance)) {
+      if (mwp.crosspoint == null || mwp.radius > RETRY_RANGE) {
         cellsize = 1000000 / 32;
         preloadPosition(mwp.waypoint, cellsize, maxDistance < 0 ? MAX_DYNAMIC_CATCHES : 2, maxDistance < 0);
       }
@@ -305,17 +308,17 @@ public final class NodesCache {
     for (int i = 0; i < len; i++) {
       MatchedWaypoint mwp = unmatchedWaypoints.get(i);
       if (mwp.crosspoint == null) {
-        if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
+        if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
           mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
-          mwp.direct = true;
+          mwp.wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
         } else {
           // do not break here throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
           return false;
         }
       }
-      if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
+      if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).wpttype == MatchedWaypoint.WAYPOINT_TYPE_DIRECT) {
         mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
-        mwp.direct = true;
+        mwp.wpttype = MatchedWaypoint.WAYPOINT_TYPE_DIRECT;
       }
     }
     return true;

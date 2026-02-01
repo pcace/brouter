@@ -46,6 +46,7 @@ public class BRouterWorker {
 
     RoutingContext rc = new RoutingContext();
     rc.rawTrackPath = rawTrackPath;
+    rc.rawAreaPath = (rawTrackPath != null ? rawTrackPath.substring(0, rawTrackPath.lastIndexOf(File.separator)+1) + "rawAreaInfo.dat" : null);
     rc.localFunction = profilePath;
 
     RoutingParamCollector routingParamCollector = new RoutingParamCollector();
@@ -99,11 +100,19 @@ public class BRouterWorker {
     }
     routingParamCollector.setParams(rc, waypoints, theParams);
 
+    Map<String, String> profileParamsCollection = null;
+    try {
+      if (profileParams != null) {
+        profileParamsCollection = routingParamCollector.getUrlParams(profileParams);
+        routingParamCollector.setProfileParams(rc, profileParamsCollection);
+      }
+    } catch (UnsupportedEncodingException e) {
+      // ignore
+    }
     if (params.containsKey("extraParams")) {
-      Map<String, String> profileparams = null;
       try {
-        profileparams = routingParamCollector.getUrlParams(params.getString("extraParams"));
-        routingParamCollector.setProfileParams(rc, profileparams);
+        profileParamsCollection = routingParamCollector.getUrlParams(params.getString("extraParams"));
+        routingParamCollector.setProfileParams(rc, profileParamsCollection);
       } catch (UnsupportedEncodingException e) {
         // ignore
       }
@@ -136,7 +145,8 @@ public class BRouterWorker {
     cr.quite = true;
     cr.doRun(maxRunningTime);
 
-    if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING) {
+    if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING ||
+        engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP) {
       // store new reference track if any
       // (can exist for timed-out search)
       if (cr.getFoundRawTrack() != null) {
@@ -159,6 +169,7 @@ public class BRouterWorker {
       track = cr.getFoundTrack();
       if (track != null) {
         track.exportWaypoints = rc.exportWaypoints;
+        track.exportCorrectedWaypoints = rc.exportCorrectedWaypoints;
         if (pathToFileResult == null) {
           switch (writeFromat) {
             case OUTPUT_FORMAT_KML:
@@ -210,6 +221,14 @@ public class BRouterWorker {
     bw.write("\n");
     writeWPList(bw, waypoints);
     writeWPList(bw, rc.nogopoints);
+    if (rc.keyValues != null) {
+      StringBuilder sb = new StringBuilder();
+      for (Map.Entry<String, String> e : rc.keyValues.entrySet()) {
+        sb.append(sb.length()>0 ? "&" : "").append(e.getKey()).append("=").append(e.getValue());
+      }
+      bw.write(sb.toString());
+      bw.write("\n");
+    }
     bw.close();
   }
 

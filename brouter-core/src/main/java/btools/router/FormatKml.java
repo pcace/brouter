@@ -1,5 +1,6 @@
 package btools.router;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import btools.mapaccess.MatchedWaypoint;
@@ -43,7 +44,7 @@ public class FormatKml extends Formatter {
     sb.append("        </LineString>\n");
     sb.append("      </Placemark>\n");
     sb.append("    </Folder>\n");
-    if (t.exportWaypoints || !t.pois.isEmpty()) {
+    if (t.exportWaypoints || t.exportCorrectedWaypoints || !t.pois.isEmpty()) {
       if (!t.pois.isEmpty()) {
         sb.append("    <Folder>\n");
         sb.append("      <name>poi</name>\n");
@@ -62,6 +63,19 @@ public class FormatKml extends Formatter {
         }
         createFolder(sb, "end", t.matchedWaypoints.subList(size - 1, size));
       }
+      if (t.exportCorrectedWaypoints) {
+        List<OsmNodeNamed> list = new ArrayList<>();
+        for (int i = 0; i < t.matchedWaypoints.size(); i++) {
+          MatchedWaypoint wp = t.matchedWaypoints.get(i);
+          if (wp.correctedpoint != null) {
+            OsmNodeNamed n = new OsmNodeNamed(wp.correctedpoint);
+            n.name = wp.name + "_corr";
+            list.add(n);
+          }
+        }
+        int size = list.size();
+        createViaFolder(sb, "via_corr", list.subList(0, size));
+      }
     }
     sb.append("  </Document>\n");
     sb.append("</kml>\n");
@@ -75,6 +89,17 @@ public class FormatKml extends Formatter {
     for (int i = 0; i < waypoints.size(); i++) {
       MatchedWaypoint wp = waypoints.get(i);
       createPlaceMark(sb, wp.name, wp.waypoint.ilat, wp.waypoint.ilon);
+    }
+    sb.append("    </Folder>\n");
+  }
+
+  private void createViaFolder(StringBuilder sb, String type, List<OsmNodeNamed> waypoints) {
+    if (waypoints.isEmpty()) return;
+    sb.append("    <Folder>\n");
+    sb.append("      <name>" + type + "</name>\n");
+    for (int i = 0; i < waypoints.size(); i++) {
+      OsmNodeNamed wp = waypoints.get(i);
+      createPlaceMark(sb, wp.name, wp.ilat, wp.ilon);
     }
     sb.append("    </Folder>\n");
   }
