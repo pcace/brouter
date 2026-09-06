@@ -38,12 +38,12 @@ import btools.util.StackSampler;
 
 public class RouteServer extends Thread implements Comparable<RouteServer> {
   public static final String PROFILE_UPLOAD_URL = "/brouter/profile";
-  public static final String PROFILES_URL = "/brouter/getprofiles";
   public static final String ROUTING_URL = "/brouter";
   static final String HTTP_STATUS_OK = "200 OK";
   static final String HTTP_STATUS_BAD_REQUEST = "400 Bad Request";
   static final String HTTP_STATUS_FORBIDDEN = "403 Forbidden";
   static final String HTTP_STATUS_NOT_FOUND = "404 Not Found";
+  static final String HTTP_STATUS_METHOD_NOT_ALLOWED = "405 Method Not Allowed";
   static final String HTTP_STATUS_INTERNAL_SERVER_ERROR = "500 Internal Server Error";
 
   public ServiceContext serviceContext;
@@ -117,7 +117,11 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
           contentType = line.substring("content-type: ".length()).trim();
         }
         if (lowerLine.startsWith("content-length: ")) {
-          contentLength = Integer.parseInt(lowerLine.substring("content-length: ".length()).trim());
+          try {
+            contentLength = Integer.parseInt(lowerLine.substring("content-length: ".length()).trim());
+          } catch (NumberFormatException e) {
+            // treat a malformed content-length as absent
+          }
         }
       }
 
@@ -169,17 +173,15 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       String url = requestLineParts[1];
       String path = getUrlPath(url);
 
-      if (ROUTING_URL.equals(path) && "OPTIONS".equals(method)) {
-        String corsHeaders = "Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS\r\n"
-          + "Access-Control-Allow-Headers: Content-Type\r\n";
-        writeHttpHeader(bw, "text/plain", null, corsHeaders, HTTP_STATUS_OK);
-        bw.flush();
-        return;
-      }
-
       RoutingParamCollector routingParamCollector = new RoutingParamCollector();
       Map<String, String> params = routingParamCollector.getUrlParams(url);
       if (ROUTING_URL.equals(path) && isBodyRequest(method)) {
+        if (!usePostRequests()) {
+          writeHttpHeader(bw, HTTP_STATUS_METHOD_NOT_ALLOWED);
+          bw.write("POST/PUT request bodies are disabled; enable with -DusePOSTRequests=true\n");
+          bw.flush();
+          return;
+        }
         try {
           params.putAll(readRoutingRequestParams(br, routingParamCollector, contentType, contentLength));
         } catch (IllegalArgumentException e) {
@@ -487,6 +489,10 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       maxRequestLength = Integer.parseInt(sMaxRequestLength);
     }
     return maxRequestLength;
+  }
+
+  private static boolean usePostRequests() {
+    return "true".equals(System.getProperty("usePOSTRequests"));
   }
 
   private static void writeHttpHeader(BufferedWriter bw, String status) throws IOException {

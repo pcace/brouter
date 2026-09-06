@@ -20,26 +20,21 @@ Routing requests to `/brouter` can use either:
 * `GET` with the existing URL query parameters
 * `POST` or `PUT` with the same parameter string in the request body
 
+Request bodies are disabled by default. To enable them, set the system
+property `usePOSTRequests` to `true` in the start script
+(`misc/scripts/standalone/server.sh`):
+
+```sh
+JAVA_OPTS="-Xmx128M -Xms128M -Xmn8M -DmaxRunningTime=300 -DuseRFCMimeType=false -DusePOSTRequests=true"
+```
+
 For request bodies, use `application/x-www-form-urlencoded` (preferred) or
 `text/plain`. This is useful for large `nogos`, `polylines` or `polygons`
 payloads that would otherwise hit browser, proxy or server URL-length limits.
 
-The standalone startup script now defaults to request bodies slightly above
-5 MiB:
-
-* `BROUTER_MAX_REQUEST_LENGTH=6291456`
-* `BROUTER_JAVA_XMX=256M`
-* `BROUTER_JAVA_XMS=256M`
-* `BROUTER_JAVA_XMN=16M`
-
-You can override those values via environment variables, for example:
-
-```sh
-BROUTER_MAX_REQUEST_LENGTH=8388608 BROUTER_JAVA_XMX=512M ./misc/scripts/standalone/server.sh
-```
-
-Containerized deployments can pass the same environment variables through
-their startup wrapper before invoking `misc/scripts/standalone/server.sh`.
+The accepted body size is capped by the `maxRequestLength` system property
+in bytes (default 1000000), for example `-DmaxRequestLength=6291456` to
+allow bodies slightly above 5 MiB.
 
 For large polygon uploads it is usually easier to put the full parameter string
 into a file and send it with `PUT`:

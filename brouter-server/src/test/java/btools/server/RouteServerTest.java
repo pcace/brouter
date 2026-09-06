@@ -85,6 +85,57 @@ public class RouteServerTest {
 
   @Test
   public void routeRequestFromPostBody() throws IOException, URISyntaxException {
+    System.setProperty("usePOSTRequests", "true");
+    try {
+      URL requestUrl = new URI(baseUrl + "brouter").toURL();
+      HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
+
+      httpConnection.setRequestMethod("POST");
+      httpConnection.setDoOutput(true);
+      httpConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+      String requestBody = "lonlats=8.723037,50.000491%7C8.712737,50.002899&profile=trekking&alternativeidx=0&format=geojson";
+      try (OutputStream outputStream = httpConnection.getOutputStream()) {
+        outputStream.write(requestBody.getBytes(StandardCharsets.UTF_8));
+      }
+
+      Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
+
+      InputStream inputStream = httpConnection.getInputStream();
+      JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+      Assert.assertEquals("1169", geoJson.query("/features/0/properties/track-length"));
+    } finally {
+      System.clearProperty("usePOSTRequests");
+    }
+  }
+
+  @Test
+  public void largePolygonRequestFromPutBody() throws IOException, URISyntaxException {
+    System.setProperty("usePOSTRequests", "true");
+    try {
+      URL requestUrl = new URI(baseUrl + "brouter").toURL();
+      HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
+
+      httpConnection.setRequestMethod("PUT");
+      httpConnection.setDoOutput(true);
+      httpConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+      String requestBody = "lonlats=8.723037,50.000491%7C8.712737,50.002899&profile=trekking&alternativeidx=0&format=geojson&polygons=" + buildLargePolygon();
+      try (OutputStream outputStream = httpConnection.getOutputStream()) {
+        outputStream.write(requestBody.getBytes(StandardCharsets.UTF_8));
+      }
+
+      Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
+
+      InputStream inputStream = httpConnection.getInputStream();
+      JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+      Assert.assertEquals("1169", geoJson.query("/features/0/properties/track-length"));
+    } finally {
+      System.clearProperty("usePOSTRequests");
+    }
+  }
+
+  @Test
+  public void postRequestDisabledByDefault() throws IOException, URISyntaxException {
+    System.clearProperty("usePOSTRequests");
     URL requestUrl = new URI(baseUrl + "brouter").toURL();
     HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
 
@@ -96,31 +147,7 @@ public class RouteServerTest {
       outputStream.write(requestBody.getBytes(StandardCharsets.UTF_8));
     }
 
-    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
-
-    InputStream inputStream = httpConnection.getInputStream();
-    JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("1169", geoJson.query("/features/0/properties/track-length"));
-  }
-
-  @Test
-  public void largePolygonRequestFromPutBody() throws IOException, URISyntaxException {
-    URL requestUrl = new URI(baseUrl + "brouter").toURL();
-    HttpURLConnection httpConnection = (HttpURLConnection) requestUrl.openConnection();
-
-    httpConnection.setRequestMethod("PUT");
-    httpConnection.setDoOutput(true);
-    httpConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-    String requestBody = "lonlats=8.723037,50.000491%7C8.712737,50.002899&profile=trekking&alternativeidx=0&format=geojson&polygons=" + buildLargePolygon();
-    try (OutputStream outputStream = httpConnection.getOutputStream()) {
-      outputStream.write(requestBody.getBytes(StandardCharsets.UTF_8));
-    }
-
-    Assert.assertEquals(HttpURLConnection.HTTP_OK, httpConnection.getResponseCode());
-
-    InputStream inputStream = httpConnection.getInputStream();
-    JSONObject geoJson = new JSONObject(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
-    Assert.assertEquals("1169", geoJson.query("/features/0/properties/track-length"));
+    Assert.assertEquals(HttpURLConnection.HTTP_BAD_METHOD, httpConnection.getResponseCode());
   }
 
   @Test
